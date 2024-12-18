@@ -1,0 +1,34 @@
+---
+- name: Test Packages 
+  hosts: controlservers
+  #connection: local # When running locally
+  #become: true
+
+  collections: 
+    - community.docker.docker_compose_v2
+  tasks:
+  #- name: "Initialize Podman machine"
+  #  command: podman machine init
+  #- name: "Start Podman machine"
+  #  command: podman machine start     
+  - name: Create mydata volume
+    containers.podman.podman_volume:
+      state: present
+      name: mydata
+
+  - debug: var=out.stdout_lines        
+  - name: Create export volume     
+    containers.podman.podman_volume:
+      state: present
+      name: export
+
+  - debug: var=out.stdout_lines              
+  - name: deploy Docker Compose stack
+    community.docker.docker_compose_v2:
+        docker_host: unix:///home/ron/.local/share/containers/podman/machine/qemu/podman.sock
+        project_src: ./
+        files:
+        - docker-compose.yml        
+
+  - debug: var=out.stdout_lines        
+

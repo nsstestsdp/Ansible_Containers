@@ -1,0 +1,23 @@
+sudo apt install qemu-kvm virt-manager bridge-utils
+
+
+sudo nano /etc/udev/rules.d/65-kvm.rules
+
+sudo ECHO '"KERNEL=="kvm", NAME="%k", GROUP="kvm", MODE="0660"' > /etc/udev/rules.d/65-kvm.rules
+
+Could not access KVM kernel module: Permission denied\nqemu-system-x86_64: -accel kvm: failed to initialize kvm: Permission denied"
+
+
+sudo apt install software-properties-common
+ansible-galaxy collection install ansible.posix
+ansible-galaxy collection install community.general
+
+ansible-galaxy collection install containers.podman
+
+ansible-galaxy collection install community.docker
+
+ansible-galaxy collection install community.libvirt
+
+sudo wget https://github.com/containers/gvisor-tap-vsock/releases/download/v0.6.2/gvproxy-linux -O /usr/libexec/podman/gvproxy && sudo chmod +x /usr/libexec/podman/gvproxy 
+
+sudo chown root:kvm /dev/kvm

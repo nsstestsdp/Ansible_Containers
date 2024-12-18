@@ -1,0 +1,10 @@
+---
+- hosts: controlservers
+  # Above is a host that has python 2.7.13 and python 3.4.10 installed
+  gather_facts: yes
+  tasks:
+    - name: Dummy
+      debug:
+        msg: "This is a dummy task that will not be executed since python3 version is too old and auto_legacy doesn't appear to work."
+
+    - debug: var=out.stdout_lines    

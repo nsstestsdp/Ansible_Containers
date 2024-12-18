@@ -1,0 +1,61 @@
+---
+- name: Test Packages 
+  hosts: controlservers
+  #connection: local # When running locally
+  become: yes
+  vars:
+    package_names:
+      - "vim"
+      - "qemu-kvm"
+      - "apt"
+      - "nginx"
+      - "python-pip"
+#      - "docker-py"
+  tasks:
+    - name: update cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+#    - name: Install required system packages
+#      apt: name=python-docker state=latest update_cache=yes        
+    - name: Ensure apache is at the latest version
+      apt:
+        name: nginx
+        state: latest
+    - name: Ensure python3-pip is at the latest version
+      apt:
+        name: python3-pip
+        state: latest
+#    - name: install certain python modules for docker
+#      pip:
+#        name: "{{ item.name }}"
+#        version: "{{ item.version }}"
+#        state: present
+#      with_items:
+#      - { name: docker, version: 2.0.0 }
+#      - { name: docker-py, version: 1.10.6 }         
+    - name: "Check if listed package is installed or not on Debian Linux family"
+      command: dpkg-query -l "{{ item }}"
+      loop: "{{ package_names }}"
+      register: package_check
+      when: ansible_facts['os_family'] == "Debian"
+
+
+    - name: "Check if listed package is installed or not on Red Hat Linux family"
+      command: rpm -q "{{ item }}"
+      loop: "{{ package_names }}"
+      register: package_check
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: "Check if listed package is installed or not on Ubuntu family"
+      command: apt show "{{ item }}"
+      loop: "{{ package_names }}"
+      register: package_check
+      when: ansible_facts['os_family'] == "Ubuntu"
+
+    - name: "Print execution results"
+      debug:
+        msg: "Package is installed"
+      when: package_check is succeeded
+
+    - debug: var=out.stdout_lines          

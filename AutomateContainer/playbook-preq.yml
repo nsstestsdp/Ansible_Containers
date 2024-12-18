@@ -1,0 +1,90 @@
+---
+- name: "Playbook to create the prerequisites"
+  hosts: managed
+  become: yes
+  gather_facts: false
+  vars:
+    homedir: /home/ron
+    hostip: 127.0.0.1
+  tasks:
+    - name: "Create the directories"
+      ansible.builtin.file:
+        path: "{{ homedir }}/{{ item }}"
+        state: directory
+      loop:
+        - syscom
+        - sysorg
+        - nginx
+
+    - name: "Create the httpd syscom file"
+      ansible.builtin.copy:
+        dest: "{{ homedir }}/syscom/index.html"
+        content: |
+          <html>
+            <header>
+              <title>SysAdmin.com</title>
+            </header>
+            <body>
+              <p>This is the SysAdmin website hosted on the .com domain</p>
+            </body>
+          </html>
+
+    - name: "Create the httpd sysorg file"
+      ansible.builtin.copy:
+        dest: "{{ homedir }}/sysorg/index.html"
+        content: |
+          <html>
+            <header>
+              <title>SysAdmin.org</title>
+            </header>
+            <body>
+              <p>This is the SysAdmin website hosted on the .org domain</p>
+            </body>
+          </html>
+
+    - name: "Create the Nginx syscom config"
+      ansible.builtin.copy:
+        dest: "{{ homedir }}/nginx/syscom.conf"
+        content: |
+          server {
+            listen 80;
+            server_name sysadmin.com;
+            
+            location / {
+              proxy_pass http://{{ hostip }}:8080;
+            }
+          }
+
+    - name: "Create the Nginx sysorg config"
+      ansible.builtin.copy:
+        dest: "{{ homedir }}/nginx/sysorg.conf"
+        content: |
+          server {
+            listen 80;
+            server_name sysadmin.org;
+            
+            location / {
+              proxy_pass http://{{ hostip }}:8081;
+            }
+          }
+
+    - name: "Create the Nginx default config"
+      ansible.builtin.copy:
+        dest: "{{ homedir }}/nginx/default.conf"
+        content: |
+          server {
+              listen       80;
+              listen  [::]:80;
+              server_name  localhost;
+              
+              location / {
+                  root   /usr/share/nginx/html;
+                  index  index.html index.htm;
+              }
+              
+              error_page   500 502 503 504  /50x.html;
+              location = /50x.html {
+                  root   /usr/share/nginx/html;
+              }
+              
+          }

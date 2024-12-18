@@ -1,0 +1,58 @@
+---
+- name: "Playbook to create two httpd containers with one nginx container as a reverse proxy"
+  hosts: managed
+  become: yes
+  gather_facts: yes
+  vars:
+    homedir: /home/ron
+    container_registry: docker.io/library
+  tasks:
+    - name: "Create the syscom container"
+      containers.podman.podman_container:
+        name: syscom
+        hostname: syscom
+        image: "{{ container_registry }}/httpd"
+        publish: 8080:80
+        volume:
+          - "{{ homedir }}/syscom:/usr/local/apache2/htdocs:Z"
+        state: started
+
+    - name: "Create the sysorg container"
+      containers.podman.podman_container:
+        name: sysorg
+        hostname: sysorg
+        image: "{{ container_registry }}/httpd"
+        publish: 8081:80
+        volume:
+          - "{{ homedir }}/sysorg:/usr/local/apache2/htdocs:Z"
+        state: started
+    
+    - name: "Allow the nginx container to run in the 80 port of the host"
+      become: true
+      become_user: root
+      become_method: sudo
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_unprivileged_port_start
+        value: "80"
+        sysctl_set: true
+        reload: true
+
+    - name: "Create the nginx container"
+      containers.podman.podman_container:
+        name: nginx
+        hostname: nginx
+        image: "{{ container_registry }}/nginx"
+        publish: 80:80
+        volume:
+          - "{{ homedir }}/nginx:/etc/nginx/conf.d:Z"
+        state: started
+
+    - name: "Disable the use of lower ports for containers again"
+      become: true
+      become_user: root
+      become_method: sudo
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_unprivileged_port_start
+        value: "1024"
+        sysctl_set: true
+        reload: true

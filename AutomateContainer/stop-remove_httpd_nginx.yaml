@@ -1,0 +1,13 @@
+---
+- name: "Playbook to delete a container"
+  hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: "Stop and remove all containers"
+      containers.podman.podman_container:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - syscom
+        - sysorg
+        - nginx
