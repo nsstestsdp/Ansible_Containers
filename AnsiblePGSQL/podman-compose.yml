@@ -5,17 +5,16 @@ services:
     ports:
       - "80:80"
     networks:
-      - app-network
+      - backend
   db:
-    image: docker.io/postgres:latest
+    image: docker.io/postgres:15.0
     environment:
       POSTGRES_USER: postgresusr
       POSTGRES_PASSWORD: StageP@ss
     volumes:
-      - /workspace/postgres-data:/var/lib/postgresql/data
+      - ${PWD}/workspace/postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-
   pgadmin:
     image: docker.io/dpage/pgadmin4
     environment:
@@ -23,3 +22,12 @@ services:
       PGADMIN_DEFAULT_PASSWORD: StageP@ss
     ports:
       - "5432:5432"
+networks:
+  backend:
+    driver: bridge
+# in case pgadmin fails
+#  adminer:
+#    image: docker.io/adminer
+#    restart: always
+#    ports:
+#      - "8080:8080"
