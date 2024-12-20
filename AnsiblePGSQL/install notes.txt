@@ -1,3 +1,5 @@
+Running a VM:
+
 sudo apt install qemu-kvm virt-manager bridge-utils
 
 
@@ -21,3 +23,230 @@ ansible-galaxy collection install community.libvirt
 sudo wget https://github.com/containers/gvisor-tap-vsock/releases/download/v0.6.2/gvproxy-linux -O /usr/libexec/podman/gvproxy && sudo chmod +x /usr/libexec/podman/gvproxy 
 
 sudo chown root:kvm /dev/kvm
+
+
+Running a container:
+
+https://docs.ansible.com/ansible/latest/collections/containers/podman/podman_container_module.html#ansible-collections-containers-podman-podman-container-module
+
+Examples
+
+- name: Run container
+  containers.podman.podman_container:
+    name: container
+    image: quay.io/bitnami/wildfly
+    state: started
+
+- name: Create a data container
+  containers.podman.podman_container:
+    name: mydata
+    image: busybox
+    volume:
+      - /tmp/data
+
+- name: Re-create a redis container with systemd service file generated in /tmp/
+  containers.podman.podman_container:
+    name: myredis
+    image: redis
+    command: redis-server --appendonly yes
+    state: present
+    recreate: true
+    expose:
+      - 6379
+    volumes_from:
+      - mydata
+    generate_systemd:
+      path: /tmp/
+      restart_policy: always
+      stop_timeout: 120
+      names: true
+      container_prefix: ainer
+
+- name: Restart a container
+  containers.podman.podman_container:
+    name: myapplication
+    image: redis
+    state: started
+    restart: true
+    etc_hosts:
+        other: "127.0.0.1"
+    restart_policy: "no"
+    device: "/dev/sda:/dev/xvda:rwm"
+    ports:
+        - "8080:9000"
+        - "127.0.0.1:8081:9001/udp"
+    env:
+        SECRET_KEY: "ssssh"
+        BOOLEAN_KEY: "yes"
+
+- name: Container present
+  containers.podman.podman_container:
+    name: mycontainer
+    state: present
+    image: ubuntu:14.04
+    command: "sleep 1d"
+
+- name: Stop a container
+  containers.podman.podman_container:
+    name: mycontainer
+    state: stopped
+
+- name: Start 4 load-balanced containers
+  containers.podman.podman_container:
+    name: "container{{ item }}"
+    recreate: true
+    image: someuser/anotherappimage
+    command: sleep 1d
+  with_sequence: count=4
+
+- name: remove container
+  containers.podman.podman_container:
+    name: ohno
+    state: absent
+
+- name: Writing output
+  containers.podman.podman_container:
+    name: myservice
+    image: busybox
+    log_options: path=/var/log/container/mycontainer.json
+    log_driver: k8s-file
+
+- name: Run container with complex command with quotes
+  containers.podman.podman_container:
+    name: mycontainer
+    image: certbot/certbot
+    command:
+      - renew
+      - --deploy-hook
+      - "echo 1 > /var/lib/letsencrypt/complete"
+
+- name: Create a Quadlet file
+  containers.podman.podman_container:
+    name: quadlet-container
+    image: nginx
+    state: quadlet
+    quadlet_filename: custome-container
+    quadlet_file_mode: '0640'
+    device: "/dev/sda:/dev/xvda:rwm"
+    ports:
+      - "8080:80"
+    volumes:
+      - "/var/www:/usr/share/nginx/html"
+    quadlet_options:
+      - "AutoUpdate=registry"
+      - "Pull=newer"
+      - |
+        [Install]
+        WantedBy=default.target
+
+containers.podman.podman_pod module – Manage Podman pods
+
+https://docs.ansible.com/ansible/latest/collections/containers/podman/podman_pod_module.html#ansible-collections-containers-podman-podman-pod-module
+
+# What modules does for example
+- containers.podman.podman_pod:
+    name: pod1
+    state: started
+    ports:
+      - "4444:5555"
+
+# Connect random port from localhost to port 80 on pod2
+- name: Connect random port from localhost to port 80 on pod2
+  containers.podman.podman_pod:
+    name: pod2
+    state: started
+    publish: "127.0.0.1::80"
+
+# Full workflow example with pod and containers
+- name: Create a pod with parameters
+  containers.podman.podman_pod:
+    name: mypod
+    state: created
+    network: host
+    share: net
+    userns: auto
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    hostname: mypod
+    dns:
+      - 1.1.1.1
+    volumes:
+      - /tmp:/tmp/:ro
+    label:
+      key: cval
+      otherkey: kddkdk
+      somekey: someval
+    add_host:
+      - "google:5.5.5.5"
+
+- name: Create containers attached to the pod
+  containers.podman.podman_container:
+    name: "{{ item }}"
+    state: created
+    pod: mypod
+    image: alpine
+    command: sleep 1h
+    loop:
+      - "container1"
+      - "container2"
+
+- name: Start pod
+  containers.podman.podman_pod:
+    name: mypod
+    state: started
+    network: host
+    share: net
+    userns: auto
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined
+    hostname: mypod
+    dns:
+      - 1.1.1.1
+    volumes:
+      - /tmp:/tmp/:ro
+    label:
+      key: cval
+      otherkey: kddkdk
+      somekey: someval
+    add_host:
+      - "google:5.5.5.5"
+
+# Create a Quadlet file for a pod
+- containers.podman.podman_pod:
+    name: qpod
+    state: quadlet
+    ports:
+      - "4444:5555"
+    volume:
+      - /var/run/docker.sock:/var/run/docker.sock
+    quadlet_dir: /custom/dir
+
+containers.podman.podman_volume – Manage Podman volumes
+https://docs.ansible.com/ansible/latest/collections/containers/podman/podman_volume_module.html#ansible-collections-containers-podman-podman-volume-module
+# What modules does for example
+- name: Create a volume
+  containers.podman.podman_volume:
+    state: present
+    name: volume1
+    label:
+      key: value
+      key2: value2
+    options:
+      - "device=/dev/loop1"
+      - "type=ext4"
+
+- name: Create a Quadlet file for a volume
+  containers.podman.podman_volume:
+    state: quadlet
+    name: quadlet_volume
+    quadlet_filename: custom-name
+    quadlet_file_mode: '0640'
+    quadlet_options:
+      - Group=192
+      - Copy=true
+      - Image=quay.io/centos/centos:latest
+
+containers.podman.podman_volume_info – Gather info about podman volumes
+https://docs.ansible.com/ansible/latest/collections/containers/podman/podman_volume_info_module.html#ansible-collections-containers-podman-podman-volume-info-module 
